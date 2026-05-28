@@ -1,0 +1,9 @@
+.DS_Store
+.env
+*.log
+.codex-logs/
+backend/data/*.db
+backend/data/*.db-*
+backend/bin/
+frontend/node_modules/
+frontend/dist/
