@@ -2,7 +2,7 @@
   <main class="page">
     <section class="hero">
       <div class="eyebrow">Stall QR Store</div>
-      <h1>流动摊主的二维码店铺</h1>
+      <h1>出摊啦</h1>
       <p>摊主每天一键出摊，顾客扫码看位置、提前下单、到摊自提。</p>
     </section>
     <section class="grid">
@@ -11,7 +11,7 @@
         <h2>附近摊位地图</h2>
         <p class="muted">默认地图打开，标注多个营业中流动摊主，可切换列表。</p>
       </RouterLink>
-      <RouterLink class="card link-card" to="/s/demo">
+      <RouterLink class="card link-card" to="/share/8K3XQ2">
         <span class="pill green">QR Mode</span>
         <h2>单摊二维码模式</h2>
         <p class="muted">只显示用户位置和目标摊主位置，不展示其他商贩。</p>

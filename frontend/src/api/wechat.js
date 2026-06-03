@@ -38,6 +38,8 @@ export async function openLocation({ lat, lng, name, address }) {
 }
 
 export async function getLocation() {
+  const devLocation = readDevLocation()
+  if (devLocation && !isWeChat()) return devLocation
   if (await ensureWeChatJS()) {
     return new Promise((resolve, reject) => {
       window.wx.ready(() => {
@@ -56,4 +58,15 @@ export async function getLocation() {
       reject
     )
   })
+}
+
+function readDevLocation() {
+  if (!import.meta.env.DEV) return null
+  try {
+    const saved = JSON.parse(localStorage.getItem('mplzDevLocation') || 'null')
+    if (Number.isFinite(Number(saved?.lat)) && Number.isFinite(Number(saved?.lng))) {
+      return { lat: Number(saved.lat), lng: Number(saved.lng), accuracy: Number(saved.accuracy || 20) }
+    }
+  } catch {}
+  return null
 }

@@ -109,15 +109,6 @@
           </section>
 
           <section v-show="activePanel === 'feedback'" class="ops-section-card">
-            <div class="between section-heading">
-              <div>
-                <span class="pill green">Feedback Center</span>
-                <h2>反馈管理</h2>
-                <p class="muted">统一处理顾客端订单/定位反馈与商户端经营问题，待处理和处理中反馈优先展示。</p>
-              </div>
-              <van-button size="small" round color="#60A5FA" @click="load">刷新反馈</van-button>
-            </div>
-
             <div class="order-filter-bar">
               <div class="segmented">
                 <button v-for="item in feedbackFilters" :key="item.value" :class="{ active: feedbackFilter === item.value }" type="button" @click="feedbackFilter = item.value">{{ item.label }}</button>
@@ -150,14 +141,6 @@
           </section>
 
           <section v-show="activePanel === 'sessions'" class="ops-section-card ops-map-console">
-            <div class="between section-heading">
-              <div>
-                <span class="pill green">Tencent Live Map</span>
-                <h2>正在营业商户位置</h2>
-                <p class="muted">只展示已开始出摊且未到预计收摊时间的商户位置，用于后台运营巡检。</p>
-              </div>
-              <van-button size="small" round color="#60A5FA" @click="load">刷新点位</van-button>
-            </div>
 
             <div class="ops-live-map-layout">
               <div class="ops-live-map-shell">
@@ -209,15 +192,6 @@
           </section>
 
           <section v-show="activePanel === 'system'" class="ops-section-card system-console">
-            <div class="between section-heading">
-              <div>
-                <span class="pill green">System Users</span>
-                <h2>系统用户</h2>
-                <p class="muted">只维护后台登录用户的基础信息和启停状态。</p>
-              </div>
-              <van-button size="small" round color="#60A5FA" @click="createSystemUser">新增用户</van-button>
-            </div>
-
             <div class="ops-table system-table">
               <div class="ops-table-row head"><span>用户</span><span>状态</span><span>更新时间</span><span>操作</span></div>
               <div v-for="user in systemUsers" :key="user.id" class="ops-table-row">
@@ -731,7 +705,7 @@ function feedbackPriority(item) {
   return { pending: 0, handling: 1, resolved: 2, closed: 3 }[item.status] ?? 9
 }
 function feedbackSourceText(source) {
-  return source === 'merchant' ? '商户端反馈' : '顾客端反馈'
+  return source === 'merchant' ? '商户' : '顾客'
 }
 function feedbackStatusText(status) {
   return { pending: '待处理', handling: '处理中', resolved: '已处理', closed: '已关闭' }[status] || status || '未知'

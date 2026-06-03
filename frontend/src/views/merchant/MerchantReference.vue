@@ -69,25 +69,17 @@
     </section>
   </main>
 
-  <main v-else class="reference-host" aria-label="商家端参考实现">
-    <iframe
-      ref="frameEl"
-      class="reference-frame"
-      :src="frameSrc"
-      title="摊主工作台"
-      @load="applyMerchantRoute"
-    ></iframe>
-  </main>
+  <MerchantWorkbench v-else :initial-screen="screenFromPath(route.path)" />
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { apiFetch, merchantHeaders, unifiedLogin } from '../../api/client'
+import MerchantWorkbench from './components/MerchantWorkbench.vue'
 
 const route = useRoute()
-const frameEl = ref(null)
 const token = ref(localStorage.getItem('merchant_token') || '')
 const submitting = ref(false)
 const status = ref(null)
@@ -100,12 +92,6 @@ const applyForm = reactive({
   photo_url: '',
   usual_area: '',
   remark: ''
-})
-const frameSrc = computed(() => {
-  const query = new URLSearchParams()
-  if (import.meta.env.VITE_API_BASE) query.set('apiBase', import.meta.env.VITE_API_BASE)
-  const raw = query.toString()
-  return `/reference/merchant.html${raw ? `?${raw}` : ''}`
 })
 const application = computed(() => status.value?.application || null)
 const showWorkbench = computed(() => token.value && status.value?.next_action === 'dashboard')
@@ -167,8 +153,6 @@ async function login() {
     token.value = resp.token
     status.value = resp
     fillApplicationForm(resp.application || { contact_phone: auth.phone })
-    await nextTick()
-    applyMerchantRoute()
   } catch (error) {
     showToast(error.message)
   } finally {
@@ -182,8 +166,6 @@ async function loadStatus() {
     const resp = await apiFetch('/api/merchant/applications/me', { headers: merchantHeaders() })
     status.value = resp
     fillApplicationForm(resp.application || { contact_phone: auth.phone })
-    await nextTick()
-    applyMerchantRoute()
   } catch (error) {
     showToast(error.message)
     if (/authorization|token|401/i.test(error.message)) logout()
@@ -216,24 +198,7 @@ function logout() {
   status.value = null
 }
 
-function applyMerchantRoute() {
-  const frameWindow = frameEl.value?.contentWindow
-  if (!frameWindow) return
-  try {
-    if (typeof frameWindow.setScreen === 'function') {
-      frameWindow.setScreen(screenFromPath(route.path))
-    }
-  } catch (error) {
-    // The reference file is same-origin in dev; ignore until iframe finishes booting.
-  }
-}
-
 onMounted(() => {
   if (token.value) loadStatus()
-})
-
-watch(() => route.fullPath, async () => {
-  await nextTick()
-  applyMerchantRoute()
 })
 </script>

@@ -6,15 +6,20 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "latest",
+    "pinia": "latest",
+    "vant": "latest",
     "vite": "latest",
     "vue": "latest",
-    "vue-router": "latest",
-    "pinia": "latest",
-    "vant": "latest"
+    "vue-router": "latest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.10",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.7"
+  }
 }

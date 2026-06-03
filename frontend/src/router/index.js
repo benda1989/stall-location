@@ -19,7 +19,17 @@ const merchantRoutes = [
 const routes = [
   { path: '/', redirect: '/nearby' },
   { path: '/home', component: Home },
+  {
+    path: '/reference/customer.html',
+    redirect: (to) => {
+      if (to.query.shareCode) return { path: `/share/${encodeURIComponent(to.query.shareCode)}`, query: { preview: to.query.preview } }
+      if (to.query.shopCode) return { path: `/s/${encodeURIComponent(to.query.shopCode)}`, query: { preview: to.query.preview } }
+      return { path: '/nearby', query: { preview: to.query.preview } }
+    }
+  },
+  { path: '/reference/merchant.html', redirect: '/merchant/dashboard' },
   { path: '/nearby', component: CustomerReference },
+  { path: '/share/:shareCode', component: CustomerReference },
   { path: '/s/:shopCode', component: CustomerReference },
   { path: '/merchant', redirect: '/merchant/dashboard' },
   ...merchantRoutes.map((path) => ({ path, component: MerchantReference })),
