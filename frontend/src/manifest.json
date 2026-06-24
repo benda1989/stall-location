@@ -1,0 +1,26 @@
+{
+  "name": "出摊啦顾客端",
+  "appid": "__UNI__STALLLOCATION",
+  "description": "流动摊位顾客端微信小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wxec59fadbcead441a",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于展示附近正在出摊的摊主距离和导航位置"
+      }
+    },
+    "requiredPrivateInfos": ["getLocation"]
+  },
+  "h5": {
+    "router": { "mode": "history" }
+  }
+}

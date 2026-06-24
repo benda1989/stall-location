@@ -1,30 +1,27 @@
 package main
 
 import (
+	"gkk/orm"
+	"gkk/tool/grace"
 	"log"
 
-	"github.com/gkk/stall-location/backend/internal/api"
-	"github.com/gkk/stall-location/backend/internal/config"
-	"github.com/gkk/stall-location/backend/internal/db"
+	"github.com/gkk/stall-location/backend/internal/bootstrap"
+	"github.com/gkk/stall-location/backend/internal/conf"
+	"github.com/gkk/stall-location/backend/internal/model"
 )
 
 func main() {
-	cfg := config.Load()
-	conn, err := db.Connect(cfg)
-	if err != nil {
-		log.Fatalf("connect database: %v", err)
-	}
-	if err := db.AutoMigrate(conn); err != nil {
-		log.Fatalf("migrate database: %v", err)
-	}
-	if cfg.SeedDemoData {
-		if err := db.SeedDemoData(conn); err != nil {
-			log.Fatalf("seed demo data: %v", err)
+	conf.Init()
+	model.Init()
+
+	if conf.C.SeedDemoData {
+		if err := bootstrap.PrepareLegacySchema(orm.DB); err != nil {
+			log.Fatalf("prepare legacy schema: %v", err)
+		}
+		if err := bootstrap.SeedDemoData(orm.DB); err != nil {
+			log.Fatalf("seed gkk demo data: %v", err)
 		}
 	}
-	r := api.NewRouter(conn, cfg)
-	log.Printf("backend listening on %s", cfg.Addr)
-	if err := r.Run(cfg.Addr); err != nil {
-		log.Fatalf("server exited: %v", err)
-	}
+	grace.Init(bootstrap.Register)
+	grace.Run()
 }

@@ -217,6 +217,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { showToast } from 'vant'
 import { adminHeaders, apiFetch, dateTime, money, unifiedLogin } from '../../api/client'
 import { hasTencentMapKey, loadTencentMap, markerSvgDataUri } from '../../api/tencentMap'
+import '../../styles/admin.css'
 
 const token = ref(localStorage.getItem('admin_token'))
 const activePanel = ref(initialAdminPanel())
@@ -398,19 +399,19 @@ async function login(payload) {
 }
 async function load() {
   const [applicationResp, shopResp, orderResp, feedbackResp, sessionResp, userResp] = await Promise.all([
-    apiFetch('/api/admin/merchant-applications', { headers: adminHeaders() }),
-    apiFetch('/api/admin/shops', { headers: adminHeaders() }),
-    apiFetch('/api/admin/orders', { headers: adminHeaders() }),
-    apiFetch('/api/admin/feedback', { headers: adminHeaders() }),
-    apiFetch('/api/admin/stall-sessions/active', { headers: adminHeaders() }),
-    apiFetch('/api/admin/system/users', { headers: adminHeaders() })
+    apiFetch('/api/sys/applications?page=1&size=100', { headers: adminHeaders() }),
+    apiFetch('/api/sys/merchants?page=1&size=100', { headers: adminHeaders() }),
+    apiFetch('/api/sys/orders?page=1&size=100', { headers: adminHeaders() }),
+    apiFetch('/api/sys/feedback?page=1&size=100', { headers: adminHeaders() }),
+    apiFetch('/api/sys/stalls/active?page=1&size=100', { headers: adminHeaders() }),
+    apiFetch('/api/sys/user/list?page=1&size=100', { headers: adminHeaders() })
   ])
-  applications.value = applicationResp.applications || []
-  shops.value = shopResp.shops || []
-  orders.value = orderResp.orders || []
-  feedbacks.value = feedbackResp.feedback || []
-  sessions.value = sessionResp.stall_sessions || []
-  systemUsers.value = userResp.users || []
+  applications.value = listFromResponse(applicationResp, ['applications']).map(normalizeApplicationRow)
+  shops.value = listFromResponse(shopResp, ['merchants', 'shops']).map(normalizeMerchantRow)
+  orders.value = listFromResponse(orderResp, ['orders']).map(normalizeOrderRow)
+  feedbacks.value = listFromResponse(feedbackResp, ['feedback', 'feedbacks']).map(normalizeFeedbackRow)
+  sessions.value = listFromResponse(sessionResp, ['stall_sessions', 'sessions', 'stalls'])
+  systemUsers.value = listFromResponse(userResp, ['users']).map(normalizeSystemUser)
   if (!selectedSessionID.value && activeSessionRows.value[0]) selectedSessionID.value = activeSessionRows.value[0].id
 }
 function activateStat(card) { activatePanel(card.panel, card.filter) }
@@ -437,7 +438,7 @@ async function reviewApplication(app, action) {
   const reason = window.prompt('处理说明', app.review_reason || defaultReason)
   if (reason === null) return
   try {
-    await apiFetch(`/api/admin/merchant-applications/${app.id}/${action}`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch(`/api/sys/applications/${app.id}/${action === 'approve' ? 'approve' : 'reject'}`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ review_reason: reason }) })
     showToast(action === 'approve' ? '已通过，店铺码已生成' : action === 'needs-info' ? '已要求补充资料' : '已驳回')
     await load()
   } catch (error) {
@@ -448,7 +449,7 @@ async function disableShop(shop) {
   const reason = window.prompt('禁用原因', shop.disabled_reason || '异常经营，暂停接单')
   if (reason === null) return
   try {
-    await apiFetch(`/api/admin/shops/${shop.id}/disable`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch('/api/sys/merchants/status', { method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ id: shop.id, status: 'disabled', disabled_reason: reason }) })
     showToast('已禁用')
     await load()
   } catch (error) {
@@ -457,7 +458,7 @@ async function disableShop(shop) {
 }
 async function enableShop(shop) {
   try {
-    await apiFetch(`/api/admin/shops/${shop.id}/enable`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({}) })
+    await apiFetch('/api/sys/merchants/status', { method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ id: shop.id, status: 'active' }) })
     showToast('已启用')
     await load()
   } catch (error) {
@@ -468,7 +469,7 @@ async function cancelOrder(order) {
   const reason = window.prompt('撤销原因', '运营后台撤销订单')
   if (reason === null) return
   try {
-    await apiFetch(`/api/admin/orders/${order.id}/cancel`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch(`/api/sys/orders/${order.id}/cancel`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
     showToast('订单已撤销')
     await load()
   } catch (error) {
@@ -479,7 +480,7 @@ async function refundOrder(order) {
   const reason = window.prompt('退款原因', '运营后台退款')
   if (reason === null) return
   try {
-    await apiFetch(`/api/admin/orders/${order.id}/refund`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch(`/api/sys/orders/${order.id}/refund`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
     showToast('退款状态已更新')
     await load()
   } catch (error) {
@@ -497,7 +498,7 @@ async function updateFeedback(item, status) {
   const note = window.prompt('处理备注', noteDefaults[status] || item.handler_note || '')
   if (note === null) return
   try {
-    const resp = await apiFetch(`/api/admin/feedback/${item.id}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ status, note }) })
+    const resp = await apiFetch(`/api/sys/feedback/${item.id}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ status, handler_note: note }) })
     const index = feedbacks.value.findIndex((row) => row.id === item.id)
     if (index >= 0) feedbacks.value.splice(index, 1, resp.feedback)
     else await load()
@@ -513,24 +514,76 @@ async function createSystemUser() {
   if (!phone) return
   const nickname = window.prompt('用户名称', '新后台用户')
   if (!nickname) return
-  await saveSystemUser({ phone, nickname, status: 'active' }, 'POST', '/api/admin/system/users')
+  await saveSystemUser({ phone, nickname, username: phone, password: '123456', is_lock: false }, 'POST', '/api/sys/user')
 }
 async function editSystemUser(user) {
   const phone = window.prompt('后台用户手机号', user.phone)
   if (!phone) return
   const nickname = window.prompt('用户名称', user.nickname)
   if (!nickname) return
-  await saveSystemUser({ phone, nickname, status: user.status || 'active' }, 'PUT', `/api/admin/system/users/${user.id}`)
+  await saveSystemUser({ id: user.id, phone, nickname, username: user.username || phone, is_lock: user.status === 'disabled' }, 'PUT', '/api/sys/user')
 }
 async function toggleSystemUser(user) {
-  await saveSystemUser({ phone: user.phone, nickname: user.nickname, status: user.status === 'disabled' ? 'active' : 'disabled' }, 'PUT', `/api/admin/system/users/${user.id}`)
+  const status = user.status === 'disabled' ? 1 : 2
+  await saveSystemUser(null, 'PUT', `/api/sys/user/status?id=${encodeURIComponent(user.id)}&status=${status}`)
 }
 async function saveSystemUser(payload, method, url) {
   try {
-    await apiFetch(url, { method, headers: adminHeaders(), body: JSON.stringify(payload) })
+    const options = { method, headers: adminHeaders() }
+    if (payload) options.body = JSON.stringify(payload)
+    await apiFetch(url, options)
     showToast('系统用户已保存')
     await load()
   } catch (error) { showToast(error.message) }
+}
+
+function listFromResponse(resp, keys = []) {
+  if (Array.isArray(resp)) return resp
+  if (Array.isArray(resp?.data)) return resp.data
+  for (const key of keys) if (Array.isArray(resp?.[key])) return resp[key]
+  return []
+}
+
+function normalizeApplicationRow(app = {}) {
+  return {
+    ...app,
+    shop_name: app.shop_name || app.merchant_name || app.merchant?.display_name || '',
+    shop_id: app.shop_id || app.merchant_id || app.merchant?.id || ''
+  }
+}
+
+function normalizeMerchantRow(merchant = {}) {
+  const displayName = merchant.name || merchant.display_name || merchant.merchant_name || ''
+  return {
+    ...merchant,
+    name: displayName,
+    shop_code: merchant.shop_code || merchant.share_code || '',
+    contact_phone: merchant.contact_phone || merchant.phone || '',
+    verified_status: merchant.verified_status || merchant.verify_status || '',
+    disabled_reason: merchant.disabled_reason || '',
+    status: merchant.status || 'active'
+  }
+}
+
+function normalizeOrderRow(order = {}) {
+  const merchant = normalizeMerchantRow(order.shop || order.merchant || {})
+  return { ...order, shop: merchant }
+}
+
+function normalizeFeedbackRow(item = {}) {
+  return {
+    ...item,
+    shop: item.shop || item.merchant || null,
+    shop_id: item.shop_id || item.merchant_id || ''
+  }
+}
+
+function normalizeSystemUser(user = {}) {
+  return {
+    ...user,
+    nickname: user.nickname || user.name || user.username || '未命名用户',
+    status: user.status || (user.is_lock ? 'disabled' : 'active')
+  }
 }
 
 function normalizeSessionRow(session, index, rows) {

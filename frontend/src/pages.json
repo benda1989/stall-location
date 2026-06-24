@@ -1,0 +1,22 @@
+{
+  "pages": [
+    {
+      "path": "pages/customer/index",
+      "style": {
+        "navigationBarTitleText": "出摊啦",
+        "navigationBarBackgroundColor": "#FFF7E8",
+        "navigationBarTextStyle": "black",
+        "enablePullDownRefresh": true,
+        "onReachBottomDistance": 120,
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "出摊啦",
+    "navigationBarBackgroundColor": "#FFF7E8",
+    "backgroundColor": "#FFF7E8",
+    "navigationStyle": "custom"
+  }
+}
