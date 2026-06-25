@@ -16,16 +16,12 @@
     <section v-if="!token" class="ops-login-card card form-stack">
       <div>
         <span class="pill green">Admin Access</span>
-        <h2>手机号验证码登录</h2>
-        <p class="muted">本地开发可使用后台手机号 13800139999，验证码 123456。</p>
+        <h2>账户密码登录</h2>
+        <p class="muted">请输入后台账户和密码进入运营后台。</p>
       </div>
-      <van-field v-model="form.phone" label="手机号" placeholder="后台手机号" />
-      <div class="sms-row">
-        <van-field v-model="form.code" label="验证码" placeholder="本地可用 123456" />
-        <van-button round plain @click="sendCode">发送验证码</van-button>
-      </div>
-      <van-button block round color="#60A5FA" @click="loginBySMS">进入经营后台</van-button>
-      <van-button block round plain @click="loginByDemo">开发账号 admin/admin123</van-button>
+      <van-field v-model="form.username" label="账户" placeholder="请输入后台账户" />
+      <van-field v-model="form.password" label="密码" type="password" placeholder="请输入后台密码" />
+      <van-button block round color="#60A5FA" @click="loginByAccount">进入经营后台</van-button>
     </section>
 
     <template v-else>
@@ -68,7 +64,6 @@
                 <span class="action-cluster">
                   <template v-if="row.kind === 'application'">
                     <van-button size="small" round color="#22C55E" @click="reviewApplication(row.raw, 'approve')">通过</van-button>
-                    <van-button size="small" round plain @click="reviewApplication(row.raw, 'needs-info')">补充</van-button>
                     <van-button size="small" round plain @click="reviewApplication(row.raw, 'reject')">驳回</van-button>
                   </template>
                   <template v-else>
@@ -227,7 +222,7 @@ const orderTimeFilter = ref('all')
 const orderSort = ref('desc')
 const feedbackFilter = ref('open')
 const feedbackSourceFilter = ref('all')
-const form = reactive({ phone: '13800139999', code: '123456', username: 'admin', password: 'admin123' })
+const form = reactive({ username: '', password: '' })
 const shops = ref([])
 const orders = ref([])
 const sessions = ref([])
@@ -269,7 +264,7 @@ const feedbackSourceFilters = [
   { value: 'merchant', label: '商户端' }
 ]
 
-const pendingApplications = computed(() => applications.value.filter((app) => ['pending', 'reviewing', 'needs_info'].includes(app.status)).length)
+const pendingApplications = computed(() => applications.value.filter((app) => ['pending', 'reviewing'].includes(app.status)).length)
 const disabledShops = computed(() => shops.value.filter((shop) => shop.status === 'disabled').length)
 const activeOrders = computed(() => orders.value.filter((order) => ['pending_accept', 'accepted', 'preparing', 'ready'].includes(order.status)).length)
 const refundOrders = computed(() => orders.value.filter((order) => order.payment_status === 'refunded').length)
@@ -316,10 +311,10 @@ const merchantRows = computed(() => {
     title: app.shop_name,
     code: app.application_no || `#${app.id}`,
     statusText: applicationStatusText(app.status),
-    tone: app.status === 'approved' ? 'green' : ['rejected', 'needs_info'].includes(app.status) ? 'red' : '',
+    tone: app.status === 'approved' ? 'green' : app.status === 'rejected' ? 'red' : '',
     meta: `${app.contact_name} · ${app.contact_phone} · ${app.category || '未填品类'}`,
     reason: applicationReason(app),
-    actionText: app.status === 'needs_info' ? '查看补充' : app.status === 'rejected' ? '查看驳回' : '立即审核',
+    actionText: app.status === 'rejected' ? '查看驳回' : '立即审核',
     subtitle: `${app.contact_name} · ${app.usual_area || '未填常出摊区域'}`,
     raw: app
   }))
@@ -377,17 +372,12 @@ const filteredFeedback = computed(() => feedbacks.value
   .filter((item) => feedbackSourceFilter.value === 'all' || item.source === feedbackSourceFilter.value)
   .sort((a, b) => feedbackPriority(a) - feedbackPriority(b) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
 
-async function sendCode() {
-  try {
-    const resp = await apiFetch('/api/auth/sms/send', { method: 'POST', body: JSON.stringify({ phone: form.phone, scene: 'admin' }) })
-    showToast(resp.dev_code ? `验证码 ${resp.dev_code}` : '验证码已发送')
-  } catch (error) {
-    showToast(error.message)
-  }
-}
-async function loginBySMS() { await login({ phone: form.phone, code: form.code }) }
-async function loginByDemo() { await login({ username: form.username, password: form.password }) }
+async function loginByAccount() { await login({ username: form.username, password: form.password }) }
 async function login(payload) {
+  if (!payload.username || !payload.password) {
+    showToast('请输入账户和密码')
+    return
+  }
   try {
     const resp = await unifiedLogin('admin', payload)
     localStorage.setItem('admin_token', resp.token)
@@ -434,12 +424,12 @@ function openPriority(row) {
   else merchantFilter.value = 'needs_action'
 }
 async function reviewApplication(app, action) {
-  const defaultReason = action === 'approve' ? '资料完整，审核通过' : action === 'needs-info' ? '请补充清晰摊位照片和常出摊区域' : '暂不符合入驻要求'
+  const defaultReason = action === 'approve' ? '资料完整，审核通过' : '暂不符合入驻要求'
   const reason = window.prompt('处理说明', app.review_reason || defaultReason)
   if (reason === null) return
   try {
     await apiFetch(`/api/sys/applications/${app.id}/${action === 'approve' ? 'approve' : 'reject'}`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ review_reason: reason }) })
-    showToast(action === 'approve' ? '已通过，店铺码已生成' : action === 'needs-info' ? '已要求补充资料' : '已驳回')
+    showToast(action === 'approve' ? '已通过，店铺码已生成' : '已驳回')
     await load()
   } catch (error) {
     showToast(error.message)
@@ -466,10 +456,9 @@ async function enableShop(shop) {
   }
 }
 async function cancelOrder(order) {
-  const reason = window.prompt('撤销原因', '运营后台撤销订单')
-  if (reason === null) return
+  if (!window.confirm(`确认取消订单 ${order.order_no || order.id}？`)) return
   try {
-    await apiFetch(`/api/sys/orders/${order.id}/cancel`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch(`/api/sys/orders/${order.id}/cancel`, { method: 'POST', headers: adminHeaders() })
     showToast('订单已撤销')
     await load()
   } catch (error) {
@@ -477,10 +466,9 @@ async function cancelOrder(order) {
   }
 }
 async function refundOrder(order) {
-  const reason = window.prompt('退款原因', '运营后台退款')
-  if (reason === null) return
+  if (!window.confirm(`确认标记订单 ${order.order_no || order.id} 为已退款？`)) return
   try {
-    await apiFetch(`/api/sys/orders/${order.id}/refund`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ reason }) })
+    await apiFetch(`/api/sys/orders/${order.id}/refund`, { method: 'POST', headers: adminHeaders() })
     showToast('退款状态已更新')
     await load()
   } catch (error) {
@@ -588,15 +576,17 @@ function normalizeSystemUser(user = {}) {
 
 function normalizeSessionRow(session, index, rows) {
   if (!session) return null
-  const shop = session.shop || shopsByID.value.get(Number(session.shop_id)) || {}
+  const merchant = session.merchant || session.Merchant || session.shop || shopsByID.value.get(Number(session.merchant_id || session.shop_id)) || {}
   const projected = projectSessionToStage(session, index, rows)
+  const merchantID = session.merchant_id || session.merchantId || session.shop_id || merchant.id
   return {
     ...session,
     id: Number(session.id),
-    name: shop.name || `商户 #${session.shop_id}`,
-    category: shop.category || '未分组',
-    contactPhone: shop.contact_phone || '',
-    shopCode: shop.shop_code || '',
+    merchant_id: merchantID,
+    name: merchant.name || merchant.display_name || `商户 #${merchantID || session.id}`,
+    category: merchant.category || '未分组',
+    contactPhone: merchant.contact_phone || merchant.phone || '',
+    shopCode: merchant.shop_code || merchant.share_code || '',
     lat: Number(session.lat),
     lng: Number(session.lng),
     x: projected.x,
@@ -723,19 +713,17 @@ function focusSession(row) {
 
 function applicationPriority(app) {
   if (app.status === 'pending' || app.status === 'reviewing') return 10
-  if (app.status === 'needs_info') return 20
   if (app.status === 'rejected') return 45
   return 90
 }
 function applicationReason(app) {
   if (app.status === 'pending') return '新申请待审核'
   if (app.status === 'reviewing') return '运营处理中'
-  if (app.status === 'needs_info') return app.review_reason || '等待申请人补充资料'
   if (app.status === 'rejected') return app.review_reason || '已驳回，可复盘原因'
   return '已完成入驻'
 }
 function applicationStatusText(status) {
-  return { pending: '待审核', reviewing: '审核中', needs_info: '需补充', approved: '已通过', rejected: '未通过' }[status] || status || '未知'
+  return { pending: '待审核', reviewing: '审核中', approved: '已通过', rejected: '未通过' }[status] || status || '未知'
 }
 function shopStatusText(shop) {
   if (shop.status === 'disabled') return '已禁用'

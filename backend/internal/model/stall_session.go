@@ -2,9 +2,11 @@ package model
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"gkk/expect"
+	"gkk/handler/sensitive"
 	gkkmodel "gkk/model"
 
 	"gorm.io/gorm"
@@ -27,6 +29,11 @@ type StallSession struct {
 }
 
 func (session *StallSession) BeforeSave(_ *gorm.DB) error {
+	session.Address = strings.TrimSpace(session.Address)
+	session.PhotoURL = strings.TrimSpace(session.PhotoURL)
+	if err := sensitive.Check(sensitive.Field{Name: "出摊地址", Text: session.Address}); err != nil {
+		return err
+	}
 	if session.Status == StatusActive {
 		session.Status = StatusEnded
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gkk/expect"
+	"gkk/handler/sensitive"
 	gkkmodel "gkk/model"
 
 	"gorm.io/gorm"
@@ -50,6 +51,20 @@ func (item MerchantItem) Omit() string {
 	return "id,user_id,share_code,share_poster_url,share_qrcode_channel,phone,products,status,verify_status,created_at"
 }
 
+func (item *MerchantItem) BeforeSave(_ *gorm.DB) error {
+	item.DisplayName = strings.TrimSpace(item.DisplayName)
+	item.Phone = strings.TrimSpace(item.Phone)
+	item.Category = strings.TrimSpace(item.Category)
+	item.AvatarURL = strings.TrimSpace(item.AvatarURL)
+	item.Announcement = strings.TrimSpace(item.Announcement)
+	item.ContactPhone = strings.TrimSpace(item.ContactPhone)
+	return sensitive.Check(
+		sensitive.Field{Name: "摊位名称", Text: item.DisplayName},
+		sensitive.Field{Name: "摊位分类", Text: item.Category},
+		sensitive.Field{Name: "摊位公告", Text: item.Announcement},
+	)
+}
+
 type MerchantStatusUpdate struct {
 	gkkmodel.IdReq[uint]
 	Status         string `json:"status" gorm:"size:24;index;default:active" validate:"required"`
@@ -87,15 +102,12 @@ func (merchant *Merchant) BeforeSave(_ *gorm.DB) error {
 	merchant.SharePosterURL = strings.TrimSpace(merchant.SharePosterURL)
 	merchant.ShareQRCodeURL = strings.TrimSpace(merchant.ShareQRCodeURL)
 	merchant.ShareQRCodeChannel = strings.TrimSpace(merchant.ShareQRCodeChannel)
-	merchant.DisplayName = strings.TrimSpace(merchant.DisplayName)
-	merchant.Phone = strings.TrimSpace(merchant.Phone)
-	merchant.Category = strings.TrimSpace(merchant.Category)
-	merchant.AvatarURL = strings.TrimSpace(merchant.AvatarURL)
-	merchant.Announcement = strings.TrimSpace(merchant.Announcement)
-	merchant.ContactPhone = strings.TrimSpace(merchant.ContactPhone)
 	merchant.Status = strings.TrimSpace(merchant.Status)
 	merchant.VerifyStatus = strings.TrimSpace(merchant.VerifyStatus)
 	merchant.DisabledReason = strings.TrimSpace(merchant.DisabledReason)
+	if err := merchant.MerchantItem.BeforeSave(nil); err != nil {
+		return err
+	}
 	if merchant.Status == "" {
 		merchant.Status = StatusActive
 	}

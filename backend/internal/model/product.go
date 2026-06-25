@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gkk/expect"
+	"gkk/handler/sensitive"
 	gkkmodel "gkk/model"
 
 	"github.com/gkk/stall-location/backend/internal/conf"
@@ -227,6 +228,12 @@ func (p *ProductItem) validate() error {
 	p.Description = strings.TrimSpace(p.Description)
 	p.ImageURL = strings.TrimSpace(p.ImageURL)
 	p.Status = strings.TrimSpace(p.Status)
+	if err := sensitive.Check(
+		sensitive.Field{Name: "商品名称", Text: p.Name},
+		sensitive.Field{Name: "商品描述", Text: p.Description},
+	); err != nil {
+		return err
+	}
 	if p.Status == "" {
 		p.Status = ProductStatusOnSale
 	}

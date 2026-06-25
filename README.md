@@ -2,6 +2,69 @@
 
 「出摊啦」是一个面向流动摊主和顾客的附近商户应用。项目由 uni-app 前端和 Go/gkk 后端组成，支持微信小程序与 H5 调试：顾客可以查看附近营业摊位、进入商户商品弹窗、收藏商户、申请成为商户并提交反馈；商户可以维护资料、开始/结束出摊、管理商品、置顶商品和分享二维码；后台可以处理申请、商户、订单、反馈和活跃出摊数据。
 
+## 页面预览
+
+### 顾客端
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="pic/list_merchant.PNG" alt="顾客端附近商户列表" width="220" />
+      <br />
+      <sub>附近商户列表</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/map_merchant.PNG" alt="顾客端地图模式" width="220" />
+      <br />
+      <sub>地图模式</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/list_favorate.PNG" alt="顾客端收藏列表" width="220" />
+      <br />
+      <sub>收藏列表</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="pic/detail_merchant.PNG" alt="顾客端商户详情弹窗" width="220" />
+      <br />
+      <sub>商户详情弹窗</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/detail_product.PNG" alt="顾客端产品图片预览" width="220" />
+      <br />
+      <sub>产品图片预览</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/merchant_on_map.PNG" alt="地图中的商户详情" width="220" />
+      <br />
+      <sub>地图商户详情</sub>
+    </td>
+  </tr>
+</table>
+
+### 商户端
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="pic/merchant_board.PNG" alt="商户工作台" width="220" />
+      <br />
+      <sub>商户工作台</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/merchant_online.PNG" alt="商户出摊状态" width="220" />
+      <br />
+      <sub>出摊状态</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="pic/merchant_product_manage.PNG" alt="商户商品管理" width="220" />
+      <br />
+      <sub>商品管理</sub>
+    </td>
+  </tr>
+</table>
+
 ## 项目结构
 
 ```text

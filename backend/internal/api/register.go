@@ -1,8 +1,8 @@
 package api
 
 import (
+	"os"
 	"path/filepath"
-	"strings"
 
 	"gkk/handler"
 	uploadali "gkk/handler/upload/ali"
@@ -30,39 +30,15 @@ func Register(app *fiber.App, services *biz.Container) {
 }
 
 func registerFrontendRoutes(app *fiber.App) {
-	root := strings.TrimSpace(conf.C.Frontend)
-	if root == "" {
-		return
+
+	indexPath := filepath.Join(conf.C.Frontend, "admin.html")
+	if fileExists(indexPath) {
+		app.Get("/daddy", func(c fiber.Ctx) error { return c.SendFile(indexPath) })
+		app.Use("/assets", static.New(filepath.Join(conf.C.Frontend, "assets")))
 	}
-	indexPath := filepath.Join(root, "index.html")
-	app.Use("/", static.New(root, static.Config{
-		Next: func(c fiber.Ctx) bool {
-			return skipFrontendRoute(c)
-		},
-		NotFoundHandler: func(c fiber.Ctx) error {
-			if !frontendFallbackRequest(c) {
-				return c.Next()
-			}
-			return c.SendFile(indexPath)
-		},
-	}))
 }
 
-func skipFrontendRoute(c fiber.Ctx) bool {
-	method := c.Method()
-	if method != fiber.MethodGet && method != fiber.MethodHead {
-		return true
-	}
-	path := c.Path()
-	return path == "/healthz" ||
-		strings.HasPrefix(path, "/api")
-}
-
-func frontendFallbackRequest(c fiber.Ctx) bool {
-	ext := strings.ToLower(filepath.Ext(c.Path()))
-	if ext != "" && ext != ".html" {
-		return false
-	}
-	accept := c.Get("Accept")
-	return accept == "" || strings.Contains(accept, "text/html") || strings.Contains(accept, "*/*")
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
